@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#123f7d">
+  <meta name="description" content="Controle de EPI - Grupo 360 Manutenção">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <title>Controle de EPI - Grupo 360</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar">Este aplicativo foi criado para o controle interno de EPI - Grupo 360 Manutenção</div>
+
+  <main class="container">
+    <header class="hero">
+      <img src="logo-360.png" class="logo" alt="Grupo 360 Manutenção">
+      <h1>Controle de EPI</h1>
+      <p>Entrega, cautela e ficha anual do colaborador</p>
+    </header>
+
+    <div id="mensagem" class="mensagem hidden"></div>
+
+    <nav class="menu">
+      <button id="mInicio" class="ativo" onclick="abrirTela('inicio')">🏠 Início</button>
+      <button id="mEntrega" onclick="abrirTela('entrega')">📦 Nova entrega</button>
+      <button id="mFichas" onclick="abrirTela('fichas')">📋 Fichas</button>
+      <button id="mHistorico" onclick="abrirTela('historico')">🕘 Histórico</button>
+    </nav>
+
+    <section id="telaInicio" class="tela">
+      <div class="alerta-box"><span class="alerta-icone">⚠️</span><div><b>ATENÇÃO</b><p>Utilize este aplicativo para registrar as entregas de EPI aos colaboradores. Cada entrega deve ser confirmada com a assinatura do colaborador e a foto do recebimento.</p></div></div>
+      <div class="card">
+        <h2>Resumo</h2>
+        <div class="resumo"><div><b>EPIs cadastrados</b><strong id="qtdEpi">0</strong></div><div><b>Colaboradores ativos</b><strong id="qtdColab">0</strong></div></div>
+        <button class="btn primario" onclick="abrirTela('entrega')">📦 Registrar nova entrega</button>
+      </div>
+      <div class="card"><h2>Como funciona</h2><p class="muted">As entregas são vinculadas à ficha vigente do colaborador e ficam registradas na planilha e no Drive.</p><div class="info">✍️ Cada entrega exige assinatura do colaborador.</div><div class="info">📷 A foto fica vinculada ao registro e armazenada no Drive.</div><div class="info">📋 A ficha reúne as entregas realizadas durante o ciclo vigente.</div></div>
+    </section>
+
+    <section id="telaEntrega" class="tela hidden">
+      <div class="card"><h2>Nova entrega de EPI</h2>
+        <div class="campo"><label>Colaborador</label><select id="colaborador" onchange="mostrarFichaRapida()"><option value="">Selecione...</option></select></div>
+        <div id="fichaRapida" class="info hidden"></div>
+        <div id="itens"></div>
+        <button class="btn secundario" onclick="adicionarItem()">＋ Adicionar outro EPI</button>
+        <div class="campo"><label>Observações</label><textarea id="observacoes" placeholder="Ex.: EPI permanente do colaborador, para tarefas na oficina..."></textarea></div>
+        <div class="grid">
+          <div><label>Assinatura do colaborador</label><div class="assinatura"><canvas id="canvas"></canvas></div><button class="btn secundario" onclick="limparAssinatura()">Limpar assinatura</button></div>
+          <div><label>Foto do recebimento</label><div class="foto"><input id="fotoInput" type="file" accept="image/*" capture="environment" onchange="prepararFoto(event)"><button class="btn secundario" onclick="document.getElementById('fotoInput').click()">📷 Tirar / selecionar foto</button><div id="fotoStatus" class="muted">A foto é obrigatória.</div><img id="preview" alt="Pré-visualização"></div><button id="removerFoto" class="btn perigo hidden" onclick="removerFoto()">Remover foto</button></div>
+        </div>
+        <button id="btnRegistrar" class="btn primario" onclick="registrar()">✓ REGISTRAR ENTREGA</button>
+      </div>
+    </section>
+
+    <section id="telaFichas" class="tela hidden">
+      <div class="card"><h2>Fichas dos colaboradores</h2><div class="campo"><label>Colaborador</label><select id="filtroFicha" onchange="carregarFichaSelecionada()"><option value="">Selecione...</option></select></div></div>
+      <div id="fichaResultado"></div>
+    </section>
+
+    <section id="telaHistorico" class="tela hidden">
+      <div class="card"><h2>Histórico</h2><p class="muted">Consulte as últimas saídas de EPI ou filtre as saídas de um dia específico.</p><div class="historico-tabs"><button id="tabRecentes" class="ativo" onclick="mostrarHistorico('recentes')">🕘 Saídas recentes</button><button id="tabDiario" onclick="mostrarHistorico('diario')">📅 Histórico diário</button><button id="tabFichas" onclick="mostrarHistorico('fichas')">📋 Fichas anuais</button></div><div id="historicoConteudo"></div></div>
+    </section>
+  </main>
+  <iframe name="apiFrame" id="apiFrame" class="hidden"></iframe>
+  <script src="app.js"></script>
+</body>
+</html>
