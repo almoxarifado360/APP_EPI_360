@@ -2,16 +2,16 @@ const API_URL='https://script.google.com/macros/s/AKfycbxOiYHEdq95i3t6ZKQ9fAlDLP
 const CAUTELA='Pelo presente, declaro ter recebido da empresa ________________________________, os EPI abaixo relacionados, para serem utilizados no exercício da função a serviço da empresa, assumindo o compromisso de usá-los em trabalho, zelar pela sua guarda e conservação e devolvê-los ao setor responsável da empresa quando se tornar impróprio para uso, por motivo de demissão ou afastamento!\n\nEm caso de perda, extravio ou avaria proposital dos equipamentos e ferramentas recebidos, autorizo a empresa na forma prevista no parágrafo primeiro do Art. 462 da Consolidação das Leis do Trabalho (CLT), a descontar de meu salário, a importância correspondente ao valor do material, inclusive no que couber a título de indenização por rescisão de contrato de trabalho!\n\nNa constatação de defeito de fabricação ou danificação, provocadas acidentalmente, ou por desgastes de uso de qualquer um dos materiais, comprometo-me a entregá-lo(s) ao setor responsável, mediante recibo. E também, em caso de minha demissão e/ou afastamento por qualquer circunstância.';
 let dados={epis:[],colaboradores:[]},fotoDataUrl='',canvas,ctx,desenhando=false,assinaturaExiste=false;
 
-window.addEventListener('load',()=>{inicializarCanvas();const p=document.getElementById('preview');if(p){p.style.display='none';p.removeAttribute('src');p.alt='Prévia da foto'}carregarDados();abrirTela('inicio');});
+window.addEventListener('load',()=>{inicializarCanvas();carregarDados();abrirTela('inicio');});
 
 function jsonp(action,params={}){return new Promise((resolve,reject)=>{const cb='epi360_cb_'+Date.now()+'_'+Math.floor(Math.random()*10000),s=document.createElement('script');const q=new URLSearchParams({api:'1',action,callback:cb,...params});let timer=setTimeout(()=>{cleanup();reject(new Error('Tempo limite ao consultar o servidor.'))},20000);function cleanup(){clearTimeout(timer);delete window[cb];s.remove()}window[cb]=(r)=>{cleanup();if(r&&r.erro)reject(new Error(r.erro));else resolve(r)};s.onerror=()=>{cleanup();reject(new Error('Não foi possível conectar ao servidor.'))};s.src=API_URL+'?'+q.toString();document.body.appendChild(s)});}
 
-async function carregarDados(){try{const r=await jsonp('carregarDados');dados=r||{epis:[],colaboradores:[]};preencherColaboradores();document.getElementById('qtdEpi').textContent=(dados.epis||[]).length;document.getElementById('qtdColab').textContent=(dados.colaboradores||[]).filter(c=>String(c.ativo||'SIM').toUpperCase()!=='NÃO').length;const box=document.getElementById('itens');if(box&&!box.children.length)adicionarItem();await carregarUltimasRetiradas()}catch(e){mostrarErro(e)}}
+async function carregarDados(){try{const r=await jsonp('carregarDados');dados=r||{epis:[],colaboradores:[]};preencherColaboradores();preencherEntradaEstoque();document.getElementById('qtdEpi').textContent=(dados.epis||[]).length;document.getElementById('qtdColab').textContent=(dados.colaboradores||[]).filter(c=>String(c.ativo||'SIM').toUpperCase()!=='NÃO').length;const box=document.getElementById('itens');if(box&&!box.children.length)adicionarItem();await carregarUltimasRetiradas()}catch(e){mostrarErro(e)}}
 
 async function carregarUltimasRetiradas(){const box=document.getElementById('ultimasRetiradas');if(!box)return;box.innerHTML='<div class="loading">Carregando...</div>';try{const lista=await jsonp('listarSaidasRecentes',{limite:10});if(!Array.isArray(lista)||!lista.length){box.innerHTML='<div class="empty">Nenhuma retirada registrada ainda.</div>';return}box.innerHTML=lista.slice(0,5).map(x=>`<div class="latest"><div class="latest-date">${esc(x.data||'')}</div><div><strong>${esc(x.descricao||'')}</strong><span>${esc(x.colaborador||'')}${x.quantidade?' · Qtd.: '+esc(x.quantidade):''}</span></div></div>`).join('')}catch(e){box.innerHTML='<div class="empty">As últimas retiradas aparecerão aqui.</div>'}}
 
 function preencherColaboradores(){['colaborador','filtroFicha'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const atual=el.value;el.innerHTML='<option value="">Selecione o colaborador...</option>';(dados.colaboradores||[]).forEach(c=>{if(String(c.ativo||'SIM').toUpperCase()==='NÃO')return;const o=document.createElement('option');o.value=c.nome;o.textContent=c.nome;el.appendChild(o)});if(atual)el.value=atual})}
-function abrirTela(t){const ids={inicio:'telaInicio',entrega:'telaEntrega',fichas:'telaFichas',historico:'telaHistorico'},menus={inicio:'mInicio',entrega:'mEntrega',fichas:'mFichas',historico:'mHistorico'};Object.values(ids).forEach(id=>document.getElementById(id).classList.add('hidden'));Object.values(menus).forEach(id=>document.getElementById(id).classList.remove('ativo'));document.getElementById(ids[t]).classList.remove('hidden');document.getElementById(menus[t]).classList.add('ativo');esconderMensagem();if(t==='historico')carregarListaFichas()}
+function abrirTela(t){const ids={inicio:'telaInicio',entrega:'telaEntrega',fichas:'telaFichas',historico:'telaHistorico',estoque:'telaEstoque'},menus={inicio:'mInicio',entrega:'mEntrega',fichas:'mFichas',historico:'mHistorico'};Object.values(ids).forEach(id=>document.getElementById(id).classList.add('hidden'));Object.values(menus).forEach(id=>document.getElementById(id).classList.remove('ativo'));document.getElementById(ids[t]).classList.remove('hidden');if(menus[t])document.getElementById(menus[t]).classList.add('ativo');esconderMensagem();if(t==='historico')carregarListaFichas()}
 
 function adicionarItem(){const box=document.getElementById('itens'),row=document.createElement('div');row.className='epi-row';const idx=box.children.length;row.innerHTML=`<div class="epi-top"><div style="font-weight:900">EPI ${idx+1}</div>${idx?'<button class="remove-item no-print" onclick="this.closest(\'.epi-row\').remove()">Remover</button>':''}</div><div class="field" style="margin-top:10px"><label>EPI <b>*</b></label><select class="epiSelect" onchange="atualizarEstoque(this)"><option value="">Selecione...</option></select><div class="stock"></div></div><div class="epi-grid"><div class="field"><label>CA</label><input class="ca" readonly></div><div class="field"><label>Quantidade <b>*</b></label><input class="qtd" type="number" min="1" value="1"></div></div>`;box.appendChild(row);const select=row.querySelector('.epiSelect');(dados.epis||[]).forEach(e=>{const o=document.createElement('option');o.value=e.codigo;o.textContent=e.codigo+' — '+e.descricao;o.dataset.ca=e.ca;o.dataset.estoque=e.estoqueAtual;o.dataset.min=e.estoqueMinimo;select.appendChild(o)})}
 function atualizarEstoque(sel){const o=sel.options[sel.selectedIndex],row=sel.closest('.epi-row');row.querySelector('.ca').value=o?.dataset?.ca||'';const est=Number(o?.dataset?.estoque||0),min=Number(o?.dataset?.min||0),box=row.querySelector('.stock');box.textContent='Estoque atual: '+est+' · mínimo: '+min;box.className='stock '+(est<=0?'zero':est<min?'alert':'ok')}
@@ -144,48 +144,73 @@ function limparAssinatura(){
   assinaturaExiste=false;
 }
 
-function prepararFoto(event){
-  const file=event.target.files&&event.target.files[0];
-  if(!file)return;
-  const rd=new FileReader();
-  rd.onload=e=>{
-    const img=new Image();
-    img.onload=()=>{
-      const lim=1000;
-      let w=img.naturalWidth,h=img.naturalHeight;
-      if(w>lim||h>lim){
-        const s=Math.min(lim/w,lim/h);
-        w=Math.round(w*s);
-        h=Math.round(h*s);
-      }
-      const c=document.createElement('canvas');
-      c.width=w;c.height=h;
-      c.getContext('2d').drawImage(img,0,0,w,h);
-      fotoDataUrl=c.toDataURL('image/jpeg',.68);
-
-      const p=document.getElementById('preview');
-      p.onerror=()=>{
-        p.style.display='none';
-      };
-      p.onload=()=>{
-        p.style.display='block';
-      };
-      p.alt='Prévia da foto';
-      p.src=fotoDataUrl;
-      document.getElementById('removerFoto').classList.remove('hidden');
-      document.getElementById('fotoStatus').textContent='✓ Foto pronta para envio.';
-    };
-    img.onerror=()=>{
-      mostrarErro('Não foi possível carregar a foto selecionada.');
-    };
-    img.src=e.target.result;
-  };
-  rd.onerror=()=>{
-    mostrarErro('Não foi possível ler a foto selecionada.');
-  };
-  rd.readAsDataURL(file);
-}
+function prepararFoto(event){const file=event.target.files&&event.target.files[0];if(!file)return;const rd=new FileReader();rd.onload=e=>{const img=new Image();img.onload=()=>{const lim=1000;let w=img.naturalWidth,h=img.naturalHeight;if(w>lim||h>lim){const s=Math.min(lim/w,lim/h);w=Math.round(w*s);h=Math.round(h*s)}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);fotoDataUrl=c.toDataURL('image/jpeg',.68);const p=document.getElementById('preview');p.src=fotoDataUrl;p.style.display='block';document.getElementById('removerFoto').classList.remove('hidden');document.getElementById('fotoStatus').textContent='✓ Foto pronta para envio.'};img.src=e.target.result};rd.readAsDataURL(file)}
 function removerFoto(){fotoDataUrl='';document.getElementById('fotoInput').value='';document.getElementById('preview').src='';document.getElementById('preview').style.display='none';document.getElementById('removerFoto').classList.add('hidden');document.getElementById('fotoStatus').textContent='A foto é obrigatória.'}
+
+
+function preencherEntradaEstoque(){
+  const select=document.getElementById('entradaEpi');
+  if(!select)return;
+  const atual=select.value;
+  select.innerHTML='<option value="">Selecione o EPI...</option>';
+  (dados.epis||[]).forEach(e=>{
+    const o=document.createElement('option');
+    o.value=e.codigo;
+    o.textContent=e.codigo+' — '+e.descricao;
+    o.dataset.estoque=e.estoqueAtual;
+    select.appendChild(o);
+  });
+  if(atual)select.value=atual;
+  atualizarPrevisaoEstoque();
+}
+
+function atualizarPrevisaoEstoque(){
+  const select=document.getElementById('entradaEpi');
+  const qtd=document.getElementById('entradaQuantidade');
+  const atualEl=document.getElementById('estoqueAtualEntrada');
+  const novoEl=document.getElementById('estoqueNovoEntrada');
+  if(!select||!qtd||!atualEl||!novoEl)return;
+  const opt=select.options[select.selectedIndex];
+  const atual=Number(opt&&opt.dataset?opt.dataset.estoque:0)||0;
+  const entrada=Number(qtd.value)||0;
+  atualEl.textContent=atual;
+  novoEl.textContent=atual+entrada;
+}
+
+async function registrarEntradaEstoque(){
+  esconderMensagem();
+  const select=document.getElementById('entradaEpi');
+  const qtdEl=document.getElementById('entradaQuantidade');
+  const fornecedor=document.getElementById('entradaFornecedor').value.trim();
+  const nf=document.getElementById('entradaNF').value.trim();
+  const obs=document.getElementById('entradaObservacoes').value.trim();
+  const codigo=select.value;
+  const quantidade=Number(qtdEl.value);
+  if(!codigo)return mostrarErro('Selecione o EPI.');
+  if(!quantidade||quantidade<=0)return mostrarErro('Informe a quantidade que entrou no estoque.');
+  const clientRequestId='EST-'+Date.now()+'-'+Math.floor(Math.random()*100000);
+  const payload={acao:'entradaEstoque',clientRequestId,codigoEpi:codigo,quantidade,fornecedor,notaFiscal:nf,observacoes:obs};
+  const btn=document.getElementById('btnEntradaEstoque');
+  btn.disabled=true;
+  btn.textContent='ATUALIZANDO...';
+  try{
+    const r=await enviarPost(payload);
+    if(!r||!r.sucesso)throw new Error(r&&r.erro||'Não foi possível atualizar o estoque.');
+    mostrarSucesso('✓ ESTOQUE ATUALIZADO\n\n'+r.descricao+'\nEntrada: +'+r.quantidade+'\nEstoque atual: '+r.estoqueNovo);
+    qtdEl.value='';
+    document.getElementById('entradaFornecedor').value='';
+    document.getElementById('entradaNF').value='';
+    document.getElementById('entradaObservacoes').value='';
+    await carregarDados();
+    document.getElementById('entradaEpi').value=r.codigo;
+    atualizarPrevisaoEstoque();
+  }catch(e){
+    mostrarErro(e);
+  }finally{
+    btn.disabled=false;
+    btn.textContent='✓ ATUALIZAR ESTOQUE';
+  }
+}
 
 async function registrar(){esconderMensagem();const colaborador=document.getElementById('colaborador').value;if(!colaborador)return mostrarErro('Selecione o colaborador.');const itens=[],cod={};document.querySelectorAll('#itens .epi-row').forEach(row=>{const s=row.querySelector('.epiSelect');if(!s||!s.value||cod[s.value])return;const qtd=Number(row.querySelector('.qtd').value);if(qtd>0)itens.push({codigoEpi:s.value,quantidade:qtd});cod[s.value]=true});if(!itens.length)return mostrarErro('Selecione pelo menos um EPI.');if(!assinaturaExiste)return mostrarErro('O colaborador precisa assinar.');if(!fotoDataUrl)return mostrarErro('Tire ou selecione a foto da entrega.');const clientRequestId='REQ-'+Date.now()+'-'+Math.floor(Math.random()*100000);const payload={clientRequestId,colaborador,itens,observacoes:document.getElementById('observacoes').value.trim(),assinaturaBase64:canvas.toDataURL('image/png'),fotoBase64:fotoDataUrl};const btn=document.getElementById('btnRegistrar');btn.disabled=true;btn.textContent='REGISTRANDO...';try{await enviarPost(payload);mostrarSucesso('✓ ENTREGA REGISTRADA\n\nColaborador: '+colaborador+'\nA operação foi salva na planilha.');limparEntrega();await carregarDados()}catch(e){mostrarErro(e)}finally{btn.disabled=false;btn.textContent='✓ REGISTRAR ENTREGA'}}
 
