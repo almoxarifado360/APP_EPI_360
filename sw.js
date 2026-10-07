@@ -1,9 +1,12 @@
-const CACHE_NAME = 'estoque-360-v20';
+const CACHE_NAME = 'epi-360-v21';
+
 const CORE = [
   './',
   './index.html',
+  './style.css',
+  './app.js',
   './manifest.json',
-  './logo-360-transparent.png',
+  './logo-360.png',
   './icon-192.png',
   './icon-512.png'
 ];
@@ -31,13 +34,23 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
+  const url = new URL(event.request.url);
+  const isNavigation = event.request.mode === 'navigate';
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        }
         return response;
       })
-      .catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
+      .catch(() => {
+        if (isNavigation) {
+          return caches.match('./index.html');
+        }
+        return caches.match(event.request);
+      })
   );
 });
