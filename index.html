@@ -7,7 +7,7 @@
 <meta name="description" content="Controle de entrega de EPI - Grupo 360 Manutenção">
 <link rel="manifest" href="manifest.json">
 <title>Controle de EPI - Grupo 360</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
 <header class="cabecalho">
@@ -147,5 +147,12 @@
 
 <iframe id="apiFrame" name="apiFrame" class="api-frame" title="API"></iframe>
 <script src="app.js"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js?v=22").catch(() => {});
+  });
+}
+</script>
 </body>
 </html>
