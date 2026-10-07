@@ -4,7 +4,7 @@ body{background:#edf3f9;color:#111;font-family:Arial,Helvetica,sans-serif;font-s
 button,input,select,textarea{font:inherit}
 .hidden{display:none!important}
 .container{max-width:1080px;margin:0 auto;padding:0 0 24px}
-.cabecalho{width:100%;background:#093272;border-radius:0 0 30px 30px;padding:52px 24px 30px;text-align:center;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.14);margin-bottom:24px}
+.cabecalho{width:100%;background:#123f7d;border-radius:0 0 30px 30px;padding:52px 24px 30px;text-align:center;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.14);margin-bottom:24px}
 .logo{display:block;width:min(100%,760px);height:auto;max-height:300px;object-fit:contain;margin:0 auto 20px;border:0;background:transparent}
 .cabecalho h1{margin:0;font-size:46px;line-height:1.05;font-weight:900;letter-spacing:.2px;text-transform:uppercase}
 .sub{margin:10px 0 0;color:#fff;font-size:20px;font-weight:400}
@@ -44,9 +44,19 @@ textarea{min-height:80px;resize:vertical}
 .cautela-documento{background:#fff;color:#111;border:1px solid #222;padding:22px;max-width:1100px;margin:0 auto;font-family:Arial,Helvetica,sans-serif}.doc-header{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px}.doc-brand{font-size:18px;font-weight:700}.doc-title{font-size:24px;font-weight:800;margin-top:4px}.doc-info{display:grid;grid-template-columns:1fr 2fr;gap:0;border:1px solid #222;margin-bottom:12px}.doc-info div{padding:7px 9px;border-bottom:1px solid #ccc}.doc-info div:nth-child(odd){border-right:1px solid #ccc}.doc-info div:last-child{border-bottom:0}.cautela-texto{border:1px solid #222;padding:12px;font-size:12px;line-height:1.45;text-align:justify;margin-bottom:14px}.cautela-tabela{width:100%;border-collapse:collapse;font-size:11px}.cautela-tabela th,.cautela-tabela td{border:1px solid #222;padding:6px;vertical-align:middle}.cautela-tabela th{font-weight:700;text-align:center}.doc-footer{display:flex;justify-content:space-between;font-size:11px;margin-top:8px}.assinaturas-finais{display:grid;grid-template-columns:1fr 1fr 180px;gap:18px;margin-top:34px;font-size:11px;text-align:center}.assinaturas-finais span{display:inline-block;margin-top:18px}
 .footer-app{text-align:center;color:#8a95a3;font-size:10px;margin-top:14px}
 .api-frame{display:none}
-@media print{body{background:#fff}.no-print{display:none!important}.container{max-width:none}.card{box-shadow:none}.cautela-documento{border:0;max-width:none;margin:0;padding:8mm}.doc-info{font-size:11px}.cautela-texto{font-size:10px}.cautela-tabela{font-size:9px}.doc-title{font-size:20px}}
+@page{size:A4 portrait;margin:8mm}
+@media print{
+  html,body{background:#fff!important;padding:0!important;margin:0!important;width:100%!important;overflow:visible!important}
+  .cabecalho,.menu,.no-print,.mensagem,.footer-app{display:none!important}
+  .container{max-width:none!important;width:100%!important;margin:0!important;padding:0!important}
+  .card{box-shadow:none!important;border:0!important}
+  .cautela-documento{display:block!important;background:#fff!important;color:#111!important;border:0!important;max-width:none!important;width:100%!important;margin:0!important;padding:0!important;font-family:Arial,Helvetica,sans-serif}
+  .doc-header{display:block!important}
+  .doc-info{font-size:10.5px}
+  .cautela-texto{font-size:9.5px;line-height:1.35}
+  .cautela-tabela{font-size:9px}
+  .cautela-tabela th,.cautela-tabela td{padding:5px}
+  .doc-title{font-size:19px}
+  .doc-footer,.assinaturas-finais{page-break-inside:avoid;break-inside:avoid}
+}
 @media(max-width:720px){.cabecalho{padding:28px 14px 24px}.logo{width:100%;max-height:230px;margin-bottom:14px}.cabecalho h1{font-size:30px}.sub{font-size:15px}.container{padding:0 8px 18px}.home-duo{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.menu button{font-size:13px;padding:10px 5px}.historico-tabs{grid-template-columns:1fr}.doc-info{grid-template-columns:1fr}.doc-info div:nth-child(odd){border-right:0}.assinaturas-finais{grid-template-columns:1fr}}
-
-.home-acoes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
-.home-acoes .btn{margin-top:0}
-@media(max-width:720px){.home-acoes{grid-template-columns:1fr}}
