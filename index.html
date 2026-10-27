@@ -583,6 +583,7 @@ button{cursor:pointer}
 @media(max-width:600px){.inventory-grid,.inventory-actions{grid-template-columns:1fr}.inventory-item .balances{grid-template-columns:1fr 1fr 1fr}.inventory-item .balance{font-size:10px}.inventory-item .balance b{font-size:14px}}
 </style>
 
+<meta name="estoque360-build" content="saida-lote-v24">
 </head>
 <body>
 <div class="app">
@@ -727,17 +728,16 @@ function renderNovaSaida(){state.items=[];$('content').innerHTML=`<h2 class="pag
 </select></div><div class="field" id="destinationReference"><label id="orderLabel">Referência da OS</label><input id="orderNumber" class="input" type="text" maxlength="80" placeholder="Ex.: 4505 ou MANUTENÇÃO BOMBA 01"></div></section><section class="panel">
   <div id="saidaLimit" class="limit">Materiais (máx. 15 por OS)</div>
   <div class="searchbox"><input id="materialSearch" class="input" placeholder="Digite o material, código ou marca" oninput="searchMaterial(this.value)"><div id="suggestions" class="suggestions" style="display:none"></div></div>
-  <div class="field" style="margin-top:14px">
-    <label>Ou inserir uma lista de materiais</label>
-    <textarea id="saidaBulk" class="input bulkbox" placeholder="Ex.:\nROL008 2\nROL010 1\nORI004 5\nINS049 3"></textarea>
+  <div class="field" id="saidaBulkPanel" style="margin-top:14px;display:block">
+    <label for="saidaBulk">📋 LISTA DE MATERIAIS EM LOTE</label>
+    <textarea id="saidaBulk" class="input bulkbox" style="display:block;width:100%;min-height:150px;height:auto;padding:12px 14px;line-height:1.45" placeholder="Cole uma linha por material. Ex.:\nROL008 2\nROL010 1\nORI004 5\nINS049 3"></textarea>
     <div class="inventory-actions"><button class="secondary" type="button" onclick="importExitList()">📋 LER LISTA</button><button class="secondary" type="button" onclick="clearExitList()">LIMPAR LISTA</button></div>
-    <div class="hint" style="font-size:12px;color:#66788a;margin-top:6px">Informe código ou descrição do material seguido da quantidade. Ex.: ROL008 2. Os itens serão carregados para conferência; nada será baixado até você confirmar a saída.</div>
+    <div class="hint" style="font-size:12px;color:#66788a;margin-top:6px">Digite o código ou a descrição exata, seguido da quantidade. Exemplo: ROL008 2. A lista será conferida antes de registrar a saída. Nada será baixado até clicar em REGISTRAR SAÍDA.</div>
   </div>
   <div id="items" class="items" style="margin-top:10px"></div>
 </section><section class="panel"><div class="summary" id="summary">Adicione os materiais que saíram do estoque.</div><button class="primary" style="margin-top:10px" onclick="confirmBaixa()">✓ REGISTRAR SAÍDA</button></section>`;
   carregarColaboradoresSaida();
   setDestination('os');
-  renderItems();
 }
 let searchTimer;let materialRequestId=0;
 async function searchMaterial(q){clearTimeout(searchTimer);const box=$('suggestions'),term=q.trim();if(!term){materialRequestId++;box.style.display='none';return}if(term.length<2){box.style.display='none';return}const requestId=++materialRequestId;searchTimer=setTimeout(async()=>{try{const r=await jsonp({action:'products',q:term});if(requestId!==materialRequestId)return;if(!r.ok)throw new Error(r.error);const products=Array.isArray(r.products)?r.products:[];box.innerHTML=products.map(p=>`<button class="suggestion" onclick='addItem(${JSON.stringify(p)})'><span><b>${esc(p.code)}</b><small>${esc(p.description)}</small></span><span class="stock">Est.: ${esc(p.stock)}<br>${esc(p.unit)}</span></button>`).join('')||'<div class="suggestion">Nenhum material encontrado.</div>';box.style.display='block'}catch(e){if(requestId!==materialRequestId)return;toast(e.message)}},250)}
@@ -746,14 +746,10 @@ function parseExitLine(line){
   let t=String(line||'').trim();
   if(!t)return null;
   t=t.replace(/^[-•]+\s*/, '');
-  const qtyPattern='(\\d+(?:[\\.,]\\d+)?)';
-  // Aceita: CODIGO 2, CODIGO | 2, CODIGO;2, CODIGO,2,
-  // CODIGO - 2 ou descrição completa - 2.
-  const m=t.match(new RegExp('^(.+?)\\s*(?:\\||;|\\t|,)\\s*'+qtyPattern+'\\s*$'))
-       || t.match(new RegExp('^(.+?)\\s+[–—-]\\s*'+qtyPattern+'\\s*$'))
-       || t.match(new RegExp('^(.+?)\\s+'+qtyPattern+'\\s*$'));
+  const m=t.match(/^(.+?)\s*(?:\||;|\t|,)\s*(\d+(?:[\.,]\d+)?)\s*$/)
+       || t.match(/^(.+?)\s+(\d+(?:[\.,]\d+)?)\s*$/);
   if(!m)return {term:t,qty:null};
-  return {term:m[1].trim().replace(/[–—-]\\s*$/,''),qty:Number(m[2].replace(',','.'))};
+  return {term:m[1].trim(),qty:Number(m[2].replace(',','.'))};
 }
 function normalizeExitMatch(value){
   return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
