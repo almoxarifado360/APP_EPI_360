@@ -737,6 +737,7 @@ function renderNovaSaida(){state.items=[];$('content').innerHTML=`<h2 class="pag
 </section><section class="panel"><div class="summary" id="summary">Adicione os materiais que saíram do estoque.</div><button class="primary" style="margin-top:10px" onclick="confirmBaixa()">✓ REGISTRAR SAÍDA</button></section>`;
   carregarColaboradoresSaida();
   setDestination('os');
+  renderItems();
 }
 let searchTimer;let materialRequestId=0;
 async function searchMaterial(q){clearTimeout(searchTimer);const box=$('suggestions'),term=q.trim();if(!term){materialRequestId++;box.style.display='none';return}if(term.length<2){box.style.display='none';return}const requestId=++materialRequestId;searchTimer=setTimeout(async()=>{try{const r=await jsonp({action:'products',q:term});if(requestId!==materialRequestId)return;if(!r.ok)throw new Error(r.error);const products=Array.isArray(r.products)?r.products:[];box.innerHTML=products.map(p=>`<button class="suggestion" onclick='addItem(${JSON.stringify(p)})'><span><b>${esc(p.code)}</b><small>${esc(p.description)}</small></span><span class="stock">Est.: ${esc(p.stock)}<br>${esc(p.unit)}</span></button>`).join('')||'<div class="suggestion">Nenhum material encontrado.</div>';box.style.display='block'}catch(e){if(requestId!==materialRequestId)return;toast(e.message)}},250)}
@@ -745,10 +746,14 @@ function parseExitLine(line){
   let t=String(line||'').trim();
   if(!t)return null;
   t=t.replace(/^[-•]+\s*/, '');
-  const m=t.match(/^(.+?)\s*(?:\||;|\t|,)\s*(\d+(?:[\.,]\d+)?)\s*$/)
-       || t.match(/^(.+?)\s+(\d+(?:[\.,]\d+)?)\s*$/);
+  const qtyPattern='(\\d+(?:[\\.,]\\d+)?)';
+  // Aceita: CODIGO 2, CODIGO | 2, CODIGO;2, CODIGO,2,
+  // CODIGO - 2 ou descrição completa - 2.
+  const m=t.match(new RegExp('^(.+?)\\s*(?:\\||;|\\t|,)\\s*'+qtyPattern+'\\s*$'))
+       || t.match(new RegExp('^(.+?)\\s+[–—-]\\s*'+qtyPattern+'\\s*$'))
+       || t.match(new RegExp('^(.+?)\\s+'+qtyPattern+'\\s*$'));
   if(!m)return {term:t,qty:null};
-  return {term:m[1].trim(),qty:Number(m[2].replace(',','.'))};
+  return {term:m[1].trim().replace(/[–—-]\\s*$/,''),qty:Number(m[2].replace(',','.'))};
 }
 function normalizeExitMatch(value){
   return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
